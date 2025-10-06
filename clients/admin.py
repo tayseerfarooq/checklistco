@@ -23,3 +23,11 @@ class TimelineTaskAdmin(admin.ModelAdmin):
     list_display = ('title', 'service', 'status', 'due_date', 'completed_at')
     list_filter = ('status', 'due_date')
     search_fields = ('title', 'service__title', 'service__client__reference_id')
+
+
+
+from django.contrib import admin
+
+admin.site.site_header = "The Checklist Co. "
+admin.site.site_title = "The Checklist Co. "
+admin.site.index_title = "Welcome to The Checklist Co Management Portal"

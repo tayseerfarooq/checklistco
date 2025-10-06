@@ -58,3 +58,23 @@ class TimelineTask(models.Model):
     @property
     def is_completed(self):
         return self.status == 'done'
+
+
+# clients/models.py  (append this code)
+
+import secrets
+from django.utils import timezone
+
+class ClientToken(models.Model):
+    client = models.ForeignKey('Client', on_delete=models.CASCADE, related_name='tokens')
+    key = models.CharField(max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            # generate a random hex token
+            self.key = secrets.token_hex(32)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Token {self.key[:8]}... for {self.client.reference_id}"

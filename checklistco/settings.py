@@ -42,9 +42,12 @@ INSTALLED_APPS = [
     'clients',     # client portal
     'billing',     # invoices
     'documents',   # document vault
+    'rest_framework',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -129,3 +132,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+}
+
+from corsheaders.defaults import default_headers
+
+# settings.py
+CORS_ALLOW_ALL_ORIGINS = True  # for dev (keep only your frontend domain in prod)
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'X-Client-Token',   # ✅ allow our custom header
+]
