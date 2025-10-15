@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("clients", "0002_service_timelinetask"),
+        ("clients", "__first__"),
     ]
 
     operations = [

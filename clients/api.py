@@ -53,10 +53,10 @@ class ClientLoginView(APIView):
 def client_services(request, ref):
     """
     GET /api/client/<ref>/services/
-    Require header: X-Client-Token: <token>
     """
     client = get_object_or_404(Client, reference_id=ref, active=True)
-    # validate token
+
+    # ✅ Check token
     token_key = request.headers.get('X-Client-Token') or request.META.get('HTTP_X_CLIENT_TOKEN')
     if not token_key:
         return Response({'message': 'Authentication credentials were not provided.'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -65,13 +65,58 @@ def client_services(request, ref):
     except ClientToken.DoesNotExist:
         return Response({'message': 'Invalid token.'}, status=status.HTTP_403_FORBIDDEN)
 
+    # ✅ Fetch services
     services = Service.objects.filter(client=client).prefetch_related('timeline_tasks')
-    serializer = ServiceSerializer(services, many=True)
-    return Response({'services': serializer.data})
 
+    data = []
+    for s in services:
+        total = s.timeline_tasks.count()
+        done = s.timeline_tasks.filter(completed=True).count()
+        progress = int((done / total) * 100) if total > 0 else 0
+
+        data.append({
+            "id": s.id,
+            "title": s.title,
+            "status": s.status,
+            "progress": progress,
+            "milestones": [
+                {
+                    "id": t.id,
+                    "title": t.title,
+                    "completed": t.completed,
+                    "current": t.current
+                } for t in s.timeline_tasks.all()
+            ]
+        })
+
+    return Response({"services": data}, status=200)
+
+
+# @api_view(['GET'])
+# def service_timeline(request, ref, service_id):
+#     """
+#     GET /api/client/<ref>/services/<service_id>/timeline/
+#     """
+#     client = get_object_or_404(Client, reference_id=ref, active=True)
+#     token_key = request.headers.get('X-Client-Token') or request.META.get('HTTP_X_CLIENT_TOKEN')
+#     if not token_key:
+#         return Response({'message': 'Authentication credentials were not provided.'}, status=status.HTTP_401_UNAUTHORIZED)
+#     try:
+#         token = ClientToken.objects.get(key=token_key, client=client)
+#     except ClientToken.DoesNotExist:
+#         return Response({'message': 'Invalid token.'}, status=status.HTTP_403_FORBIDDEN)
+
+#     service = get_object_or_404(Service, id=service_id, client=client)
+#     milestones = service.timeline_tasks.all()
+#     mser = TimelineTaskSerializer(milestones, many=True)
+#     return Response({'service': {'id': service.id, 'title': service.title, 'status': service.status, 'milestones': mser.data}})
 
 @api_view(['GET'])
 def service_timeline(request, ref, service_id):
+    
+    print("🧩 Incoming headers →", dict(request.headers))  # 👈 Line 1
+    print("🟢 META (raw headers) →", {k: v for k, v in request.META.items() if 'HTTP_' in k})  # 👈 Line 2
+    print("📘 Token received:", request.headers.get("X-Client-Token"))  # 👈 Line 3
     """
     GET /api/client/<ref>/services/<service_id>/timeline/
     """
@@ -87,4 +132,18 @@ def service_timeline(request, ref, service_id):
     service = get_object_or_404(Service, id=service_id, client=client)
     milestones = service.timeline_tasks.all()
     mser = TimelineTaskSerializer(milestones, many=True)
-    return Response({'service': {'id': service.id, 'title': service.title, 'status': service.status, 'milestones': mser.data}})
+
+    # ✅ Calculate progress dynamically
+    total = milestones.count()
+    done = milestones.filter(completed=True).count()
+    progress = int((done / total) * 100) if total > 0 else 0
+
+    return Response({
+        'service': {
+            'id': service.id,
+            'title': service.title,
+            'status': service.status,
+            'progress': progress,
+            'milestones': mser.data
+        }
+    })
